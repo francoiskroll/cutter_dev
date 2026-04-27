@@ -72,7 +72,8 @@ classifyReads <- function(mut,
   mutL <- split(mut, mut$sample)
   # then we pass each mutation table to classifyReads_one
   rlabL <- lapply(1:length(mutL), function(muti) {
-    cat('\t \t \t \t >>> Sample', muti, 'out of', length(mutL), '\n')
+    cat('\n \t \t \t \t >>> Sample', muti, 'out of', length(mutL), '\n')
+    cat('\t \t \t \t', names(mutL)[muti], '\n')
     mut <- mutL[[muti]]
     
     ### sample fewer reads to analyse?
