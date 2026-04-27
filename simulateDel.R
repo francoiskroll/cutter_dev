@@ -44,7 +44,6 @@ simulateDel <- function(mut,
       filter(locus==li)
     
     # check we only have one locus to be safe
-    # check that we only have one locus
     if(length(unique(mutli$locus))>1) stop('\t \t \t \t Error simulateDel: can only simulate a sample for *one* locus at a time.\n')
     # get setting cutpos from the existing mut dataframe
     cutpos <- unique(mutli$cutpos)
@@ -140,7 +139,7 @@ simulateDel <- function(mut,
   
   # check columns are identical (before looking at their positions)
   if(!identical( sort(colnames(mut)) , sort(colnames(simdf))))
-    stop('\t \t \t \t >>> Error simulateDel: all columns of mut are not in simdel, or vice-versa.\n')
+    stop('\t \t \t \t >>> Error simulateDel: all columns of mut are not in simdf, or vice-versa.\n')
   
   # now put the columns of simdf in the same order
   simdf <- simdf[, colnames(mut) ]
@@ -348,7 +347,7 @@ freqBins <- function(v,
 
 # similar as freqBins
 # but we sum frequencies within each bin
-# assumes that frequencies were calculated already
+# assumes that frequencies were calculated already (unlike freqBins)
 # small utilities function
 # to turn some data (e.g. deletion lengths) into frequency within bins
 # df: a dataframe with the values to split into bins & the frequencies
@@ -394,12 +393,16 @@ sumFreqBins <- function(df,
   
   breaks <- seq(from=lower, to=lastbreak, by=every)
   
-  # sum frequencies within each bin
-  sumfs <- aggregate(fs, by=list(bin = cut(v, breaks=breaks)), FUN=sum)
+  bins <- cut(v, breaks=breaks, include.lowest=TRUE)
+  
+  sumfs <- tapply(fs, bins, FUN=sum, default=0)
   
   # prepare small dataframe to plot
-  hisd <- data.frame(upbound=breaks[2:length(breaks)],
-                     sumfreq=sumfs$x)
+  hisd <- data.frame(bin=levels(bins),
+                     lowbound=breaks[1 : (length(breaks)-1)],
+                     upbound=breaks[2:length(breaks)],
+                     sumfreq=sumfs)
+  row.names(hisd) <- NULL
   # dataframe
   # upbound: last value of each bin
   # sumfreq: sum of frequencies within this bin
