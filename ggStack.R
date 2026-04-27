@@ -90,6 +90,7 @@ ggStack <- function(rlab,
                     ynameOrNo=TRUE,
                     legendOrNo=TRUE,
                     splcovOrNo=FALSE,
+                    labelSamples=NA,
                     xgrid=FALSE,
                     titleSize=9,
                     ytitleSize=9,
@@ -263,6 +264,15 @@ ggStack <- function(rlab,
   covwrite <- rtal %>%
     distinct(sample, .keep_all=TRUE)
   
+  ### if user asked to label some samples, prepare data now
+  if(!is.na(labelSamples[1])) {
+    labeldf <- data.frame(sample=labelSamples, label='*')
+    sampledf <- rtal %>%
+      distinct(sample, .keep_all=TRUE)
+    labeldf <- left_join(sampledf, labeldf, by='sample')
+  }
+
+  
   ### plot
   ggstack <- ggplot(data=rtal, aes (x=sample, y=catpro, fill=cat)) +
     
@@ -278,6 +288,8 @@ ggStack <- function(rlab,
     theme_minimal() +
     # write coverage on top of each bar?
     {if(splcovOrNo) geom_text(data=covwrite, aes(x=sample, label=splcov, y=1.0), size=2)} +
+    {if(!is.na(labelSamples[1])) geom_text(data=labeldf, aes(x=sample, label=label, y=0.98), size=2.5)} +
+    
     theme(
 
       panel.grid.minor=element_blank(),
