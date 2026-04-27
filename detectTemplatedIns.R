@@ -416,7 +416,7 @@ searchLCS <- function(alrow,
     # ! median on integers can give .5
     # here, round will arbitrarily take position on the left or the right
     # I think R rounds down if first digit is even / rounds up if first digit is odd
-    # i.e. rounds to the closest even number
+    # i.e. rounds to the closest even integer
     
     # convert it to positions on overall reference sequence
     # because we want to get searchWindow from the original reference sequence, not the aligned one
