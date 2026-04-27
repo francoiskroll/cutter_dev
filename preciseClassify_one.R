@@ -6,6 +6,9 @@
 # francois@kroll.be
 #####################################################
 
+source('~/Dropbox/cutter/isEditPresent.R')
+source('~/Dropbox/cutter/removeExpedit.R')
+
 # expect mut, mutation table created by filterMutations
 
 # v1
@@ -187,7 +190,7 @@ preciseClassify_one <- function(mut,
       # we want to adjust scaffWin based on this; detection window should be bigger on the right if sequence happens to match
       # we simply add this many nucleotides to the end of the window
       if(nti>0) {
-        cat('\t \t \t \t \t >>>', nti, 'nucleotides before rhapos happen to match the expected scaffold incorporation, adjusting the search window...\n')
+        cat('\t \t \t \t \t', nti, 'nucleotide(s) before rhapos happen to match the expected scaffold incorporation, adjusting the search window...\n')
       }
       scaffWinAdj[2] <- scaffWinAdj[2] + nti
       # for example, 2 nt match, so scaffWin goes from c(0,0) to c(0,2)
@@ -224,7 +227,7 @@ preciseClassify_one <- function(mut,
       # we want to adjust scaffWin based on this; detection window should be bigger on the left if sequence happens to match
       # we simply subtract this many nucleotides to the start of the window
       if(nti>0) {
-        cat('\t \t \t \t >>>', nti, 'nucleotides before rhapos happen to match the expected scaffold incorporation, adjusting the search window...')
+        cat('\t \t \t \t', nti, 'nucleotide(s) before rhapos happen to match the expected scaffold incorporation, adjusting the search window... \n')
       }
       scaffWinAdj[1] <- scaffWinAdj[1] - nti
       # for example, 2 nt match, so scaffWin goes from c(-1,-1) to c(-3,-1)
@@ -295,32 +298,33 @@ preciseClassify_one <- function(mut,
     # note, read could still be called reference below
     # for example, a read that just has one substitution and no edit will be called reference (assuming unwantedSubs is FALSE)
     
-    ### is prime-edit present? ###
-    if(expedit %in% muti$mutid) {
+    # collect all the mutids currently in muti
+    mutids <- muti$mutid
+    
+    ### is desired edit present? ###
+    # if expedit is NA, just keep expedit as FALSE
+    if(isEditPresent(expedit=expedit, mutid=mutids) ) {
       # then switch edit flag to TRUE
       rlab['expedit'] <- TRUE
     }
     
     ### other mutation(s) present? ###
-    # can simply count number of rows,
-    # after we remove expected edit (if it is present)
-    # is expected edit present? if yes, remove it
-    muti_unw <- muti # will store unwanted mutations
-    if(rlab['expedit']) {
-      muti_unw <- muti_unw %>%
-        filter(mutid!=expedit)
-    }
-    
     # should we count substitutions as unwanted mutation or not?
-    # if not, then exclude substitutions
+    # if not, then exclude substitutions from mutids
+    # copy mutids
+    mutids_unw <- mutids
+    
     if(!unwantedSubs) {
-      muti_unw <- muti_unw %>%
-        filter(type!='sub')
+      mutids_unw <- mutids[which(!str_detect(mutids, 'sub'))]
+      # unw for unwanted mutations
     }
     
-    # if any rows left in unwanted mutations, then we have some unwanted mutations
-    # flip 'mut' flag to TRUE
-    if(nrow(muti_unw)>0) {
+    ## also need to remove expedit so we do not call it unwanted
+    mutids_unw <- removeExpedit(expedit=expedit, mutid=mutids_unw)
+    
+    ## now count number of mutids left
+    # if any, then there is one or more unwanted mutations
+    if(length(mutids_unw)>0) {
       rlab['mut'] <- TRUE
     }
     # note, if read only has substitution(s) (no expected edit)
@@ -444,6 +448,9 @@ preciseClassify_one <- function(mut,
       # if 'scaff' has any rows, this means the read has a scaffold incorporation
       
       if(nrow(scaff)>0) {
+        
+        cat('\t \t \t \t \t >>> scaffold incorporation:', scaff$mutid, '\n')
+        
         rlab['scaffold'] <- TRUE
         # note, if unwantedSubs is FALSE (i.e. only call indels)
         # scaffold can be present and mut flag be FALSE
