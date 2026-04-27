@@ -63,9 +63,22 @@ strNthSplit <- function(stri,
 
 mut <- read.csv('~/Dropbox/Cas9MiSeqDB/mutcalls.csv')
 
+## how many reads?
+length(unique(mut$urid))
+
 ### only keep deletions
 del <- mut %>%
   filter(type=='del')
+# mut has 233 samples
+
+# but 191 injected samples
+mut %>%
+  filter(grp!='ni') %>%
+  distinct(sample) %>%
+  tally()
+
+# only keeping deletion reads removes 10 samples
+length(unique(del$sample))
 
 # see *** notes v0
 
@@ -122,8 +135,7 @@ del <- left_join(del, new_nreads, by=c('sample', 'mutid'))
 # as explained above: within each sample, frequency of each deletion out of all reads with a deletion
 
 # to obtain this, we calculate number of reads with deletions for each sample
-# ! not a simple tally as a single read may have multiple deletions
-# but we can simply count unique read ids from del
+# we can simply count unique read ids from del
 deltal <- del %>%
   group_by(sample) %>%
   summarise(spl_nreadsdel=n_distinct(urid))
@@ -216,6 +228,7 @@ unique(check$sum)
 # including those not observed with frequencies = 0.0
 
 # (with help from GPT)
+# ! should update with version from Claude used in forkMMEJ_sumfreqs.R
 # first create every option
 # i.e. lists, for each locus, all possible deletions
 alludel <- delsum %>%
@@ -701,6 +714,7 @@ ggdelfit <- ggplot(dellenf, aes(x=bp, y=freq)) +
     axis.text.x=element_text(size=7)
   ) +
   xlab('deletion length (bp)') +
-  ylab('frequency')
+  ylab('frequency') +
+  scale_x_continuous(breaks=c(1, 20, 40, 60))
 ggdelfit
 ggsave(here('~/Dropbox/cutter/dev_plots/delfreqCas9db.pdf'), ggdelfit, width=75, height=60, units='mm')
