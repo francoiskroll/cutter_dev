@@ -25,10 +25,6 @@ library(openxlsx)
 callMutations <- function(copath,
                           metapath,
                           minnreads=NA,
-                          cutpos=NA,
-                          cutdist=NA,
-                          rhapos=NA,
-                          rhadist=NA,
                           controltb=NA,
                           callSubs=TRUE,
                           exportpath) {
@@ -88,9 +84,9 @@ callMutations <- function(copath,
       (welli %in% dirspli) & (locusi %in% dirspli)
     })))
     # there should be one & only one
-    if(length(foundDir)>1) stop('\t \t \t \t Error callMutations: multiple CRISPResso directory names have well', welli, 'and locus', locusi,
+    if(length(foundDir)>1) stop('\t \t \t \t Error callMutations: multiple CRISPResso directory names have well ', welli, ' and locus ', locusi,
                                 '. There should only be one CRISPResso directory for each unique well/locus pair.\n')
-    if(length(foundDir)==0) stop('\t \t \t \t Error callMutations: no CRISPResso directory names have well', welli, 'and locus', locusi, '.\n')
+    if(length(foundDir)==0) stop('\t \t \t \t Error callMutations: no CRISPResso directory names have well ', welli, ' and locus ', locusi, '.\n')
     
     # so the CRISPResso directory to analyse is
     cridir <- dirs[foundDir]
@@ -123,19 +119,35 @@ callMutations <- function(copath,
     muttb <- allelesToMutations(alpath=altxt)
     
     ### filter the detected mutations
+    # get cutpos, cutdist, rhapos, rhadist from meta file
+    # (if they are given)
+    # below: if not an integer, will give integer(0)
+    # can check if length 0, if yes, convert to NA
+    cutpos <- as.integer(meta[metarow, 'cutpos'])
+    if(length(cutpos)==0) { cutpos <- NA }
+    
+    cutdist <- as.integer(meta[metarow, 'cutdist'])
+    if(length(cutdist)==0) { cutdist <- NA }
+    
+    rhapos <- as.integer(meta[metarow, 'rhapos'])
+    if(length(rhapos)==0) { rhapos <- NA }
+    
+    rhadist <- as.integer(meta[metarow, 'rhadist'])
+    if(length(rhadist)==0) { rhadist <- NA }
+    
     cat('\t \t \t \t >>> Filtering mutation calls.\n')
     
-    cat('\t \t \t \t', 'cutpos:', meta[metarow, 'cutpos'], '\n')
-    cat('\t \t \t \t', 'cutdist:', meta[metarow, 'cutdist'], '\n')
-    cat('\t \t \t \t', 'rhapos:', meta[metarow, 'rhapos'], '\n')
-    cat('\t \t \t \t', 'rhadist:', meta[metarow, 'rhadist'], '\n')
+    cat('\t \t \t \t', 'cutpos:', cutpos, '\n')
+    cat('\t \t \t \t', 'cutdist:', cutdist, '\n')
+    cat('\t \t \t \t', 'rhapos:', rhapos, '\n')
+    cat('\t \t \t \t', 'rhadist:', rhadist, '\n')
     
     mutf <- filterMutations(muttb=muttb,
                             minnreads=minnreads,
-                            cutpos=meta[metarow, 'cutpos'],
-                            cutdist=meta[metarow, 'cutdist'],
-                            rhapos=meta[metarow, 'rhapos'],
-                            rhadist=meta[metarow, 'rhadist'],
+                            cutpos=cutpos,
+                            cutdist=cutdist,
+                            rhapos=rhapos,
+                            rhadist=rhadist,
                             controltb=controltb,
                             callSubs=callSubs)
     
