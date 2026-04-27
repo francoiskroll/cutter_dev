@@ -62,7 +62,9 @@ ggTemplIns <- function(mut,
   
   # we still need to deal with reads which have multiple insertions
   # we can just remove duplicated read IDs
-  ins <- ins[-which(duplicated(ins$urid)),]
+  if(sum(duplicated(ins$urid))>0) {
+    ins <- ins[-which(duplicated(ins$urid)),]
+  }
   
   # check to be safe
   nins_perread <- ins %>%
@@ -130,9 +132,14 @@ ggTemplIns <- function(mut,
   
   # map levels to colors
   fillCols <- c(
-    'NA' = '#d7d9da',
+    'NA' = '#E9EBEC',
     setNames(gradient_fn(rescale(num_lvls)), as.character(num_lvls))
   )
+  
+  # set the order of the groups (plot's facet)
+  if(!is.na(grporder[1])) {
+    lctal$grp <- factor(lctal$grp, levels=grporder)
+  }
   
   ### ready to plot
   ggInsbp <- ggplot(lctal, aes(x=sample, y=catpro, fill=lcbp_gg)) +
@@ -158,8 +165,10 @@ ggTemplIns <- function(mut,
   
   print(ggInsbp)
   
-  ggsave(exportpath, ggInsbp, width=width, height=height, units='mm')
-  
+  if(!is.na(exportpath)) {
+    ggsave(exportpath, ggInsbp, width=width, height=height, units='mm')
+  }
+
   return(lctal)
   
 }
