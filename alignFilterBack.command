@@ -1,13 +1,13 @@
 #!/bin/bash
 
-### flags are:
+### arguments are:
     # -c path to config.csv, c for config
     # -r path to folder with fastq reads, r for reads
     # -a path to folder with fasta reference sequences, a for alignment
     # -u if present, we only have one fastq file per sample, rather than one with Fw reads and one with Rv reads
     # -l whether to filter the bam file or not; l for fiLter; filtering is ON if flag is given, OFF if not
 
-# in addition, flags from filterBAM.command:
+# in addition, arguments from filterBAM.command:
     # -i = input = bam file to process
     # -e = PhrEd score = minimum Phred score
     # -f = floor = minimum read span
@@ -280,7 +280,8 @@ do
         # use slightly different command
         if [[ $* == *-u* ]]
         then
-            bedtools bamtofastq -i "$bamfiltNSp" -fq "$fwdfqp"
+            samtools fastq -0 "$fwdfqp" "$bamfiltNSp" # bedtools bamtofastq seems unable to deal with this case!
+            # it doubles the read count even when outputting to a single fastq file
             checkPath "$fwdfqp" # check that we did create filtered Forward file
             # now gunzip them
             # it will delete original
