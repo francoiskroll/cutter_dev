@@ -79,9 +79,10 @@ mut <- read.csv('~/Dropbox/Cas9MiSeqDB/mutcalls.csv')
 
 # detect templated insertions on Cas9MiSeqDB ------------------------------
 
+# 27/01/2026 extendNewlySeq=3 >> =0
 # mutins <- detectTemplatedIns(mut=mut,
 #                              allowStretchMatches=5,
-#                              extendNewlySeq=3,
+#                              extendNewlySeq=0,
 #                              searchWindowStarts=20,
 #                              minLCSbp=5)
 # > takes a while!
@@ -96,6 +97,15 @@ ins <- mutins %>%
   filter(type=='ins')
 
 
+# number of insertion reads
+length(unique(ins$urid))
+
+# number of samples
+length(unique(ins$sample))
+
+# number of loci
+length(unique(ins$locus))
+
 # delete reads with multiple insertions -----------------------------------
 
 # which reads have multiple insertions?
@@ -104,7 +114,7 @@ ninsperread <- ins %>%
   tally(name='nins') %>%
   filter(nins>1) # directly remove all the 1s (usual case)
 
-# we may not have to delete them if they always have the same templated ins detection
+# stop; we may not have to delete them if they always have the same templated ins detection
 # below = number of unique newlyseq per urid
 tmp <- ins %>%
   filter(urid %in% ninsperread$urid) %>%
@@ -135,6 +145,8 @@ ins <- ins[!duplicated(ins$urid),]
 
 # now, each row of ins is one read / one templated ins detection
 
+# number of insertion reads now
+length(unique(ins$urid)) # did not change, as expected
 
 ### reset nreads
 # we need to count again number of reads with each mutation
@@ -194,6 +206,8 @@ ins <- ins %>%
 length(unique(ins$sample))
 # Cas9DB v0: 113 samples left
 
+length(unique(ins$locus))
+
 # above should have automatically deleted all ni samples
 # check that
 unique(ins$grp) # yes, only inj left
@@ -205,6 +219,7 @@ ggplot(ins, aes(x=newlyseq_bp)) +
 # note: min. is 7 bp
 # this actually represents a 1-bp insertion,
 # but the newlyseq is extended by 3 bp on either side (so + 6 bp)
+# >> 27/01/2026 now extendNewlySeq=0 so min. is 1 bp
 
 ### now to get the frequency of each deletion, out of all deletions in this sample
 # we can simply divide nreads / spl_nreadsdel
@@ -396,7 +411,9 @@ inslenf <- inslenf[order(inslenf$newlyseq_bp),]
 # bit dodgy as not actually possible
 # they are from newlyseq which are longer but have some hyphens -
 # otherwise, looks good
-inslenf <- inslenf[-which(inslenf$newlyseq_bp==6),]
+# inslenf <- inslenf[-which(inslenf$newlyseq_bp==6),]
+# >> 26/01/2026 no need to do this anymore
+# min. newlyseq_bp is 1 bp which is logical
 
 ggNewlyBp <- ggplot(inslenf, aes(x=newlyseq_bp, y=freq)) +
   geom_col()
@@ -468,7 +485,8 @@ flog <- fitdistr(lens, 'lognormal', lower=7) # "log-normal" gives same result
 floi <- fitdistr(lens, 'logistic', lower=7)
 
 ### negative binomial
-fbin <- fitdistr(lens, 'negative binomial', lower=7)
+# fbin <- fitdistr(lens, 'negative binomial', lower=7)
+# commented out because it throws error
 
 ### normal
 fnor <- fitdistr(lens, 'normal', lower=7) # does not require start, cf. documentation
@@ -507,6 +525,8 @@ ggplot(inslenf, aes(x=newlyseq_bp, y=freq)) +
                 args=list(rate=fexp$estimate[1]),
                 colour='red')
 # better, but fit is not great, could start higher
+# >> 27/01/2026 solved! looks much better
+# extendNewlySeq=3 was the issue
 
 ### gamma
 ggplot(inslenf, aes(x=newlyseq_bp, y=freq)) +
@@ -619,7 +639,6 @@ draws <- rexp(n=10000, rate=fexp$estimate[1])
 
 qqplot(draws, lens)
 abline(0,1)
-# not so great to be honest
 
 
 # KS test -----------------------------------------------------------------
@@ -628,6 +647,8 @@ abline(0,1)
 # will ignore but may be an issue
 
 ks.test(lens, 'pexp', rate=fexp$estimate[1]) # D = 0.37 / p very low
+# 27/01/2026: D = 0.16 / p very low
+# lower D = better!
 
 
 # mode of the draws? ------------------------------------------------------
@@ -636,6 +657,7 @@ ks.test(lens, 'pexp', rate=fexp$estimate[1]) # D = 0.37 / p very low
 # (then round to simulate lengths of deletions)
 # is 3, so same result
 draws <- round(rexp(n=10000, rate=fexp$estimate[1]))
+
 getmode <- function(v) {
   uniqv <- unique(v)
   uniqv[which.max(tabulate(match(v, uniqv)))]
@@ -646,10 +668,11 @@ getmode(draws)
 # in real data:
 getmode(lens)
 # 7 bp
+# 27/01/2026 also 1
 
 # the exponential fit is not amazing
 # but should be a decent approximation
-
+# 27/01/2026: now much better!
 
 # summary -----------------------------------------------------------------
 
@@ -675,7 +698,9 @@ ggdelfit <- ggplot(inslenf, aes(x=newlyseq_bp, y=freq)) +
     axis.text.x=element_text(size=7)
   ) +
   xlab('length of newly synthesised sequence (bp)') +
-  ylab('frequency')
+  ylab('frequency') +
+  coord_cartesian(xlim=c(1, 98)) +
+  scale_x_continuous(breaks=c(1, 25, 50, 75, 100))
 ggdelfit
 
 ggsave('~/Dropbox/cutter/dev_plots/newlyseqfreqCas9db.pdf', ggdelfit, width=75, height=60, units='mm')
