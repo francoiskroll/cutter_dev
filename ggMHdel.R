@@ -15,9 +15,18 @@ library(tidyr)
 # ggMHdel -----------------------------------------------------------------
 # colours correspond to length of MH
 
+# ! colourManual: need to give colours as 0 bp, then reverse order
+# e.g. 0 bp, 4 bp, 3 bp, 2 bp, 1 bp
+
+# colourManual:
+# paper used colourManual=c('#E9EBEC', '#C26682', '#C77F93', '#CD96A4', '#FFE4EA'),
+# here are 6 darker if need more:
+# #C04871" "#AB3861" "#962952" "#821843" "#6E0335" "#560027"
+
 ggMHdel <- function(mut,
                     min_del_nreads=50, # arbitrary
                     colourLight='#f1b9c7',
+                    colourManual=NA,
                     splitby='grp',
                     onlygrp=NA,
                     grporder=NA,
@@ -103,14 +112,21 @@ ggMHdel <- function(mut,
   mhtal$MHbp <- factor(mhtal$MHbp, levels=MHbp_ord)
   
   # prepare the colours
-  # user gave us the lightest colour
-  # then we make it darker for each additional bp of MH
-  MHbp_ord_no0 <- MHbp_ord[-which(MHbp_ord==0)]
-  catcols <- sapply(MHbp_ord_no0, function(bp) {
-    darken(col=colourLight, amount=0.08*bp)
-  })
-  # add colour for 0
-  catcols <- c('#d7d9da', catcols)
+  # either user user gave us the lightest colour >> then we make it darker for each additional bp of MH
+  # or user gave us all colours with colourManual
+  if(!is.na(colourLight) & is.na(colourManual[1])) {
+    MHbp_ord_no0 <- MHbp_ord[-which(MHbp_ord==0)]
+    catcols <- sapply(MHbp_ord_no0, function(bp) {
+      darken(col=colourLight, amount=0.08*bp)
+    })
+    # add colour for 0
+    catcols <- c('#d7d9da', catcols)
+  } else if(is.na(colourLight) & !is.na(colourManual[1])) {
+    catcols <- colourManual
+  } else {
+    stop('\t \t \t \t >>> Error: set colourLight as NA and give colourManual, or vice-versa.\n')
+  }
+  cat('\t \t \t \t >>> Colours starting from 0 bp MH are: ', catcols, '\n')
   
   # set the order of the groups (plot's facet)
   if(!is.na(grporder[1])) {
@@ -153,8 +169,10 @@ ggMHdel <- function(mut,
   cat('\t \t \t \t', length(unique(mhtal$sample)), 'samples plotted, including potential simulated sample.\n')
   cat('\t \t \t \t groups plotted:', unique(mhtal$grp), '\n')
   
-  ggsave(exportpath, ggMhbp, width=width, height=height, units='mm')
-  
+  if(!is.na(exportpath)) {
+    ggsave(exportpath, ggMhbp, width=width, height=height, units='mm')
+  }
+
   return(mhtal)
   
 }
